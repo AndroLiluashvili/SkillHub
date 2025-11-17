@@ -16,11 +16,9 @@ async function loadEvents() {
       container.innerHTML = "";
   
       events.forEach((e) => {
-        // Bootstrap column
         const col = document.createElement("div");
         col.className = "col-12 col-md-6 col-lg-4";
   
-        // Bootstrap card
         col.innerHTML = `
           <div class="card h-100 shadow-sm">
             <div class="card-body d-flex flex-column">
@@ -37,8 +35,8 @@ async function loadEvents() {
               <p class="card-text fw-semibold mb-3">
                 Price: €${e.price}
               </p>
-              <a href="#" class="btn btn-primary mt-auto disabled">
-                View details (coming soon)
+              <a href="event.html?id=${e.id}" class="btn btn-outline-primary mt-auto">
+                View details
               </a>
             </div>
           </div>

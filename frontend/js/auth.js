@@ -42,16 +42,19 @@ function updateNavbarAuth(user) {
 
   if (user) {
     navAuth.innerHTML = `
-      <li class="nav-item">
-        <a class="nav-link" href="my-bookings.html">My bookings</a>
-      </li>
-      <li class="nav-item">
-        <span class="nav-link disabled">Hi, ${user.name}</span>
-      </li>
-      <li class="nav-item">
-        <a class="nav-link" href="#" id="logout-link">Logout</a>
-      </li>
-    `;
+        <li class="nav-item">
+          <a class="nav-link" href="create-event.html">Create event</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="my-bookings.html">My bookings</a>
+        </li>
+        <li class="nav-item">
+          <span class="nav-link disabled">Hi, ${user.name}</span>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="#" id="logout-link">Logout</a>
+        </li>
+      `;
 
     const logoutLink = document.getElementById("logout-link");
     if (logoutLink) {

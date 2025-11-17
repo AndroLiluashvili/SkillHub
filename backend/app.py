@@ -1,9 +1,15 @@
 import os
 import sqlite3
+import requests   
 
 from flask import Flask, request, jsonify, session
 from flask_cors import CORS
 from werkzeug.security import generate_password_hash, check_password_hash
+
+CITY_COORDS = {
+    "Tbilisi": (41.7167, 44.7833),
+    "Online": None, 
+}
 
 # ------------------------------------------------
 # CONFIG
@@ -15,8 +21,24 @@ DB_PATH = os.path.join(BASE_DIR, "skillhub.db")
 app = Flask(__name__)
 app.config["SECRET_KEY"] = "CHANGE_ME_TO_RANDOM_SECRET"
 
-# allow frontend (another origin) to call this API with cookies
-CORS(app, supports_credentials=True)
+# Session cookie security
+app.config.update(
+    SESSION_COOKIE_HTTPONLY=True,   # JS cannot read the cookie
+    SESSION_COOKIE_SAMESITE="Lax",  # helps against CSRF from other sites
+    SESSION_COOKIE_SECURE=False,    # set True if you deploy over HTTPS
+)
+
+# Allow only your frontend origin(s) for CORS, not everyone
+CORS(
+    app,
+    supports_credentials=True,
+    origins=[
+        "http://localhost:5500",      # static server from frontend/
+        "http://127.0.0.1:5500",
+        # you can add your real domain later if deployed
+    ],
+)
+
 
 
 # ------------------------------------------------
@@ -144,6 +166,10 @@ def register():
 
     if not name or not email or not password:
         return jsonify({"error": "Name, email and password are required"}), 400
+    if len(password) < 6:
+     return jsonify({"error": "Password must be at least 6 characters"}), 400
+    if "@" not in email:
+      return jsonify({"error": "Invalid email format"}), 400
 
     db = get_db()
     try:
@@ -203,6 +229,38 @@ def get_events():
     db.close()
     return jsonify([dict(e) for e in events])
 
+def get_weather_for_city(city: str):
+  """Fetch current weather for a given city using Open-Meteo.
+  Returns a small dict or None if not available / error."""
+  coords = CITY_COORDS.get(city)
+  if not coords:
+      return None
+
+  lat, lon = coords
+  try:
+      resp = requests.get(
+          "https://api.open-meteo.com/v1/forecast",
+          params={
+              "latitude": lat,
+              "longitude": lon,
+              "current_weather": "true",
+          },
+          timeout=5,
+      )
+      if resp.status_code != 200:
+          return None
+      data = resp.json()
+      cw = data.get("current_weather")
+      if not cw:
+          return None
+
+      return {
+          "temperature": cw.get("temperature"),
+          "windspeed": cw.get("windspeed"),
+          "weathercode": cw.get("weathercode"),
+      }
+  except Exception:
+      return None
 
 @app.get("/api/events/<int:event_id>")
 def get_event(event_id):
@@ -219,8 +277,52 @@ def get_event(event_id):
 
     event_dict = dict(event)
     event_dict["seats_left"] = event_dict["capacity"] - booked
+    weather = get_weather_for_city(event_dict.get("city"))
+    event_dict["weather"] = weather  # may be None
+
     return jsonify(event_dict)
 
+@app.post("/api/events")
+def create_event():
+    # Must be logged in to create an event
+    ok, resp, code = require_login()
+    if not ok:
+        return resp, code
+
+    data = request.json or {}
+
+    title = (data.get("title") or "").strip()
+    description = (data.get("description") or "").strip()
+    date = (data.get("date") or "").strip()         # format: YYYY-MM-DD
+    time = (data.get("time") or "").strip()         # format: HH:MM
+    city = (data.get("city") or "").strip()
+    location = (data.get("location") or "").strip()
+    capacity = data.get("capacity")
+    price = data.get("price")
+
+    # Basic validation
+    if not title or not date or not time or not city or not location:
+        return jsonify({"error": "Title, date, time, city and location are required"}), 400
+
+    try:
+        capacity = int(capacity)
+        price = float(price)
+    except (TypeError, ValueError):
+        return jsonify({"error": "Capacity must be integer and price must be a number"}), 400
+
+    db = get_db()
+    cur = db.execute(
+        """
+        INSERT INTO events (title, description, date, time, city, location, capacity, price)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (title, description, date, time, city, location, capacity, price),
+    )
+    db.commit()
+    new_id = cur.lastrowid
+    db.close()
+
+    return jsonify({"message": "Event created", "id": new_id}), 201
 
 # ------------------------------------------------
 # BOOKINGS ROUTES
