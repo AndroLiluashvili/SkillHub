@@ -1,0 +1,12 @@
+/* frontend/css/style.css */
+
+body {
+    background-color: #f7f7f7;
+  }
+  
+  /* Optional: style for loading text */
+  #loading {
+    font-style: italic;
+    color: #666;
+  }
+  

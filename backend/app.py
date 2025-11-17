@@ -1,17 +1,27 @@
+import os
+import sqlite3
+
 from flask import Flask, request, jsonify, session
 from flask_cors import CORS
 from werkzeug.security import generate_password_hash, check_password_hash
-import sqlite3
-import os
+
+# ------------------------------------------------
+# CONFIG
+# ------------------------------------------------
+
+BASE_DIR = os.path.dirname(__file__)
+DB_PATH = os.path.join(BASE_DIR, "skillhub.db")
 
 app = Flask(__name__)
-app.config["SECRET_KEY"] = "CHANGE_THIS"
+app.config["SECRET_KEY"] = "CHANGE_ME_TO_RANDOM_SECRET"
 
-CORS(app, supports_credentials=True)  # allow frontend to call backend
+# allow frontend (another origin) to call this API with cookies
+CORS(app, supports_credentials=True)
 
 
-DB_PATH = os.path.join(os.path.dirname(__file__), "skillhub.db")
-
+# ------------------------------------------------
+# DB HELPERS
+# ------------------------------------------------
 
 def get_db():
     conn = sqlite3.connect(DB_PATH)
@@ -19,9 +29,6 @@ def get_db():
     return conn
 
 
-# -----------------------------
-# Initialize database if needed
-# -----------------------------
 def init_db():
     db = get_db()
     db.executescript(
@@ -53,46 +60,261 @@ def init_db():
         );
         """
     )
-    db.commit()
+
+    # seed a few events if empty
+    cur = db.execute("SELECT COUNT(*) AS c FROM events")
+    if cur.fetchone()["c"] == 0:
+        db.executemany(
+            """
+            INSERT INTO events
+                (title, description, date, time, city, location, capacity, price)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            [
+                (
+                    "Strategic Negotiations Workshop",
+                    "Learn practical negotiation skills for business.",
+                    "2025-12-10",
+                    "10:00",
+                    "Tbilisi",
+                    "Tech Park Hall A",
+                    30,
+                    99.0,
+                ),
+                (
+                    "AI for Managers",
+                    "Non-technical introduction to AI and data-driven decisions.",
+                    "2025-12-15",
+                    "14:00",
+                    "Online",
+                    "Zoom Webinar",
+                    100,
+                    49.0,
+                ),
+            ],
+        )
+        db.commit()
+
+    db.close()
 
 
+# run once on import
 init_db()
+
+
+# ------------------------------------------------
+# SMALL HELPER
+# ------------------------------------------------
+
+def require_login():
+    if "user_id" not in session:
+        return False, jsonify({"error": "Not logged in"}), 401
+    return True, None, None
+
+
+# ------------------------------------------------
+# ROOT
+# ------------------------------------------------
+
+@app.get("/")
+def home():
+    return jsonify(
+        {
+            "message": "SkillHub API is running",
+            "endpoints": [
+                "/api/events",
+                "/api/register",
+                "/api/login",
+                "/api/my-bookings",
+            ],
+        }
+    )
+
+
+# ------------------------------------------------
+# AUTH ROUTES
+# ------------------------------------------------
 
 @app.post("/api/register")
 def register():
-    data = request.json
-    name = data.get("name")
-    email = data.get("email")
-    password = data.get("password")
+    data = request.json or {}
+    name = data.get("name", "").strip()
+    email = data.get("email", "").strip().lower()
+    password = data.get("password", "")
 
     if not name or not email or not password:
-        return jsonify({"error": "Missing fields"}), 400
+        return jsonify({"error": "Name, email and password are required"}), 400
 
     db = get_db()
-
     try:
         db.execute(
             "INSERT INTO users (name, email, password_hash) VALUES (?, ?, ?)",
             (name, email, generate_password_hash(password)),
         )
         db.commit()
-        return jsonify({"message": "Registration successful"}), 201
     except sqlite3.IntegrityError:
+        db.close()
         return jsonify({"error": "Email already exists"}), 400
+
+    db.close()
+    return jsonify({"message": "Registration successful"}), 201
 
 
 @app.post("/api/login")
 def login():
-    data = request.json
-    email = data.get("email")
-    password = data.get("password")
+    data = request.json or {}
+    email = data.get("email", "").strip().lower()
+    password = data.get("password", "")
 
     db = get_db()
     user = db.execute("SELECT * FROM users WHERE email = ?", (email,)).fetchone()
+    db.close()
 
     if user is None or not check_password_hash(user["password_hash"], password):
-        return jsonify({"error": "Invalid credentials"}), 401
+        return jsonify({"error": "Invalid email or password"}), 401
 
     session["user_id"] = user["id"]
+    session["user_name"] = user["name"]
 
-    return jsonify({"message": "Logged in", "user": dict(user)})
+    return jsonify(
+        {
+            "message": "Logged in",
+            "user": {"id": user["id"], "name": user["name"], "email": user["email"]},
+        }
+    )
+
+
+@app.post("/api/logout")
+def logout():
+    session.clear()
+    return jsonify({"message": "Logged out"})
+
+
+# ------------------------------------------------
+# EVENTS ROUTES
+# ------------------------------------------------
+
+@app.get("/api/events")
+def get_events():
+    db = get_db()
+    events = db.execute(
+        "SELECT * FROM events ORDER BY date ASC, time ASC"
+    ).fetchall()
+    db.close()
+    return jsonify([dict(e) for e in events])
+
+
+@app.get("/api/events/<int:event_id>")
+def get_event(event_id):
+    db = get_db()
+    event = db.execute("SELECT * FROM events WHERE id = ?", (event_id,)).fetchone()
+    if event is None:
+        db.close()
+        return jsonify({"error": "Event not found"}), 404
+
+    booked = db.execute(
+        "SELECT COUNT(*) AS c FROM bookings WHERE event_id = ?", (event_id,)
+    ).fetchone()["c"]
+    db.close()
+
+    event_dict = dict(event)
+    event_dict["seats_left"] = event_dict["capacity"] - booked
+    return jsonify(event_dict)
+
+
+# ------------------------------------------------
+# BOOKINGS ROUTES
+# ------------------------------------------------
+
+@app.post("/api/events/<int:event_id>/book")
+def book_event(event_id):
+    ok, resp, code = require_login()
+    if not ok:
+        return resp, code
+
+    db = get_db()
+
+    event = db.execute("SELECT * FROM events WHERE id = ?", (event_id,)).fetchone()
+    if event is None:
+        db.close()
+        return jsonify({"error": "Event not found"}), 404
+
+    booked = db.execute(
+        "SELECT COUNT(*) AS c FROM bookings WHERE event_id = ?", (event_id,)
+    ).fetchone()["c"]
+
+    if booked >= event["capacity"]:
+        db.close()
+        return jsonify({"error": "Event is full"}), 400
+
+    try:
+        db.execute(
+            "INSERT INTO bookings (user_id, event_id) VALUES (?, ?)",
+            (session["user_id"], event_id),
+        )
+        db.commit()
+    except sqlite3.IntegrityError:
+        db.close()
+        return jsonify({"error": "You already booked this event"}), 400
+
+    db.close()
+    return jsonify({"message": "Booking successful"})
+
+
+@app.get("/api/me")
+def me():
+    if "user_id" not in session:
+        return jsonify({"user": None})
+    return jsonify({
+        "user": {
+            "id": session["user_id"],
+            "name": session.get("user_name"),
+        }
+    })
+
+
+@app.get("/api/my-bookings")
+def my_bookings():
+    ok, resp, code = require_login()
+    if not ok:
+        return resp, code
+
+    db = get_db()
+    bookings = db.execute(
+        """
+        SELECT b.id, e.title, e.date, e.time, e.city, e.location
+        FROM bookings b
+        JOIN events e ON e.id = b.event_id
+        WHERE b.user_id = ?
+        ORDER BY e.date ASC, e.time ASC
+        """,
+        (session["user_id"],),
+    ).fetchall()
+    db.close()
+
+    return jsonify([dict(b) for b in bookings])
+
+
+@app.delete("/api/bookings/<int:booking_id>")
+def cancel_booking(booking_id):
+    ok, resp, code = require_login()
+    if not ok:
+        return resp, code
+
+    db = get_db()
+    db.execute(
+        "DELETE FROM bookings WHERE id = ? AND user_id = ?",
+        (booking_id, session["user_id"]),
+    )
+    db.commit()
+    db.close()
+
+    return jsonify({"message": "Booking cancelled"})
+
+
+# ------------------------------------------------
+# RUN
+# ------------------------------------------------
+
+if __name__ == "__main__":
+    app.run(debug=True)

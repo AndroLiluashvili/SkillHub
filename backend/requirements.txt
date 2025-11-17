@@ -3,3 +3,4 @@ werkzeug
 requests
 python-dotenv
 flask-wtf
+flask-cors
