@@ -1,47 +1,118 @@
 // frontend/js/bookings.js
 
+const bookingsContainer = document.getElementById("bookings-container");
+const bookingsLoading = document.getElementById("bookings-loading");
+const bookingsAlert = document.getElementById("bookings-alert");
+
+// Flask backend base URL (port 5000, not 5500)
+const BACKEND_BASE = "http://127.0.0.1:5000/api";
+
+function showBookingsError(message) {
+  if (!bookingsAlert) return;
+  bookingsAlert.textContent = message;
+  bookingsAlert.classList.remove("d-none");
+}
+
+function clearBookingsError() {
+  if (!bookingsAlert) return;
+  bookingsAlert.textContent = "";
+  bookingsAlert.classList.add("d-none");
+}
+
 async function loadBookings() {
-    const container = document.getElementById("bookings-container");
-    const loading = document.getElementById("bookings-loading");
-    const alertBox = document.getElementById("bookings-alert");
-  
-    loading.classList.remove("d-none");
-    alertBox.classList.add("d-none");
-    container.innerHTML = "";
-  
-    try {
-      const bookings = await apiGet("/my-bookings");
-      loading.classList.add("d-none");
-  
-      if (!bookings.length) {
-        container.innerHTML = "<p>You have no bookings yet.</p>";
-        return;
-      }
-  
-      const list = document.createElement("div");
-      list.className = "list-group";
-  
-      bookings.forEach((b) => {
-        const item = document.createElement("div");
-        item.className = "list-group-item d-flex justify-content-between align-items-center";
-  
-        item.innerHTML = `
-          <div>
-            <h6 class="mb-1">${b.title}</h6>
-            <small class="text-muted">${b.date} • ${b.time} • ${b.city} – ${b.location}</small>
-          </div>
-        `;
-  
-        list.appendChild(item);
-      });
-  
-      container.appendChild(list);
-    } catch (err) {
-      loading.classList.add("d-none");
-      alertBox.textContent = err.message || "Failed to load bookings.";
-      alertBox.classList.remove("d-none");
+  if (!bookingsContainer || !bookingsLoading || !bookingsAlert) return;
+
+  bookingsLoading.classList.remove("d-none");
+  clearBookingsError();
+  bookingsContainer.innerHTML = "";
+
+  try {
+    // apiGet is from js/api.js and already talks to the backend
+    const bookings = await apiGet("/my-bookings");
+    bookingsLoading.classList.add("d-none");
+
+    if (!bookings.length) {
+      bookingsContainer.innerHTML =
+        '<p class="text-muted">You have no bookings yet.</p>';
+      return;
     }
+
+    const list = document.createElement("div");
+    list.className = "list-group";
+
+    bookings.forEach((b) => {
+      const item = document.createElement("div");
+      item.className =
+        "list-group-item d-flex justify-content-between align-items-center";
+
+      item.innerHTML = `
+        <div>
+          <h6 class="mb-1">${b.title}</h6>
+          <small class="text-muted">
+            ${b.date} • ${b.time} • ${b.city} – ${b.location}
+          </small>
+        </div>
+        <button
+          type="button"
+          class="btn btn-outline-danger btn-sm ms-3 cancel-booking-btn"
+          data-booking-id="${b.id}">
+          Cancel
+        </button>
+      `;
+
+      list.appendChild(item);
+    });
+
+    bookingsContainer.appendChild(list);
+  } catch (err) {
+    bookingsLoading.classList.add("d-none");
+    showBookingsError(err.message || "Failed to load bookings.");
   }
-  
-  document.addEventListener("DOMContentLoaded", loadBookings);
-  
+}
+
+// Handle cancel booking via event delegation on the container
+if (bookingsContainer) {
+  bookingsContainer.addEventListener("click", async (e) => {
+    const btn = e.target.closest(".cancel-booking-btn");
+    if (!btn) return;
+
+    const bookingId = btn.getAttribute("data-booking-id");
+    if (!bookingId) return;
+
+    const confirmed = window.confirm(
+      "Are you sure you want to cancel this booking?"
+    );
+    if (!confirmed) return;
+
+    const originalText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = "Cancelling…";
+
+    clearBookingsError();
+
+    try {
+      // IMPORTANT: talk to Flask backend on port 5000
+      const res = await fetch(`${BACKEND_BASE}/bookings/${bookingId}`, {
+        method: "DELETE",
+        credentials: "include",
+        headers: {
+          Accept: "application/json",
+        },
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Could not cancel booking.");
+      }
+
+      // Refresh bookings after successful cancel
+      await loadBookings();
+    } catch (err) {
+      btn.disabled = false;
+      btn.textContent = originalText;
+      showBookingsError(err.message || "Could not cancel booking.");
+    }
+  });
+}
+
+document.addEventListener("DOMContentLoaded", loadBookings);

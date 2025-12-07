@@ -1,3 +1,8 @@
+from flask import app, jsonify
+
+from backend.app import get_db
+
+
 @app.get("/api/events")
 def get_events():
     db = get_db()

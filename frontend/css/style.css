@@ -1,12 +1,271 @@
 /* frontend/css/style.css */
 
+/* ---------- Global ---------- */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+:root {
+  --sh-bg: #f3f4f6;
+  --sh-surface: #ffffff;
+  --sh-border: #e5e7eb;
+  --sh-border-strong: #cbd5f5;
+  --sh-text-main: #0f172a;
+  --sh-text-muted: #6b7280;
+  --sh-primary: #2563eb;
+  --sh-primary-soft: #e0edff;
+}
+
+html,
 body {
-    background-color: #f7f7f7;
-  }
-  
-  /* Optional: style for loading text */
-  #loading {
-    font-style: italic;
-    color: #666;
-  }
-  
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    Roboto, sans-serif;
+  background:
+    radial-gradient(circle at top left, #e0edff 0, transparent 55%),
+    radial-gradient(circle at bottom right, #fee2e2 0, transparent 55%),
+    var(--sh-bg);
+  color: var(--sh-text-main);
+  display: flex;
+  flex-direction: column;
+}
+
+/* make main push footer down */
+main.container {
+  flex: 1 0 auto;
+}
+
+/* ---------- Navbar ---------- */
+
+.navbar {
+  background: linear-gradient(120deg, #020617, #111827);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.3);
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(18px);
+}
+
+.navbar-brand {
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-size: 0.95rem;
+}
+
+.navbar-nav .nav-link {
+  position: relative;
+  font-weight: 500;
+  color: rgba(249, 250, 251, 0.8);
+}
+
+.navbar-nav .nav-link.active {
+  color: #ffffff;
+}
+
+.navbar-nav .nav-link::after {
+  content: "";
+  position: absolute;
+  left: 0.75rem;
+  right: 0.75rem;
+  bottom: 0.35rem;
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #60a5fa, #a855f7);
+  transform: scaleX(0);
+  transform-origin: center;
+  transition: transform 0.18s ease-out;
+}
+
+.navbar-nav .nav-link:hover::after,
+.navbar-nav .nav-link.active::after {
+  transform: scaleX(1);
+}
+
+/* small “Hi, Andro …” section */
+#nav-auth .nav-link {
+  font-weight: 500;
+}
+
+/* ---------- Typography / Layout ---------- */
+
+main.container {
+  padding-top: 1rem;
+  padding-bottom: 2.5rem;
+}
+
+main.container h1.h3 {
+  font-size: 1.6rem;
+  font-weight: 700;
+}
+
+.text-muted {
+  color: var(--sh-text-muted) !important;
+}
+
+/* ---------- Buttons ---------- */
+
+.btn-primary {
+  background: linear-gradient(135deg, #2563eb, #4f46e5);
+  border: none;
+  border-radius: 999px;
+  padding-inline: 1.35rem;
+  padding-block: 0.6rem;
+  font-weight: 600;
+  box-shadow: 0 10px 25px rgba(37, 99, 235, 0.45);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+}
+
+.btn-primary:hover {
+  opacity: 0.96;
+  transform: translateY(-1px);
+  box-shadow: 0 16px 40px rgba(37, 99, 235, 0.55);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+  box-shadow: 0 6px 18px rgba(37, 99, 235, 0.55);
+}
+
+/* subtle outline variant (for “View details”) */
+.btn-outline-primary {
+  border-radius: 999px;
+}
+
+/* ---------- Cards & Surfaces ---------- */
+
+.card {
+  border-radius: 1.25rem;
+  border: 1px solid var(--sh-border);
+  box-shadow: 0 14px 35px rgba(15, 23, 42, 0.06);
+}
+
+/* event cards on the homepage */
+#events-container .card {
+  transition: transform 0.18s ease, box-shadow 0.18s ease,
+    border-color 0.18s ease, background-color 0.18s ease;
+  background: var(--sh-surface);
+}
+
+#events-container .card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 18px 45px rgba(15, 23, 42, 0.12);
+  border-color: var(--sh-border-strong);
+  background-color: #f9fafb;
+}
+
+#events-container .card-title {
+  font-weight: 600;
+  margin-bottom: 0.1rem;
+}
+
+#events-container .card-subtitle {
+  font-size: 0.9rem;
+}
+
+/* “event details” card */
+#event-content.card {
+  border-radius: 1.35rem;
+  border: 1px solid var(--sh-border);
+  box-shadow: 0 20px 55px rgba(15, 23, 42, 0.12);
+}
+
+#event-content .card-body {
+  padding: 1.9rem 1.9rem 2.1rem;
+}
+
+#event-meta {
+  font-size: 0.95rem;
+  color: var(--sh-text-muted);
+}
+
+/* bookings list */
+#bookings-container .card {
+  margin-bottom: 1rem;
+}
+
+/* ---------- Forms / Auth / Create Event ---------- */
+
+/* wrap any main form in a soft card */
+main.container form {
+  background: var(--sh-surface);
+  border-radius: 1.2rem;
+  padding: 1.75rem 1.75rem 1.9rem;
+  border: 1px solid var(--sh-border);
+  box-shadow: 0 16px 45px rgba(15, 23, 42, 0.08);
+}
+
+/* give title + description a bit of spacing on form pages */
+main.container > h1.h3 + p {
+  margin-bottom: 0.9rem;
+}
+
+.form-label {
+  font-weight: 500;
+  font-size: 0.92rem;
+}
+
+.form-control {
+  border-radius: 0.9rem;
+  border-color: #d1d5db;
+  padding: 0.55rem 0.75rem;
+  background-color: #f9fafb;
+}
+
+.form-control:focus {
+  border-color: var(--sh-primary);
+  background-color: #ffffff;
+  box-shadow: 0 0 0 0.18rem rgba(37, 99, 235, 0.22);
+}
+
+/* number inputs nicer */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  margin: 0;
+}
+
+/* ---------- Alerts & Loading ---------- */
+
+.alert {
+  border-radius: 0.9rem;
+  font-size: 0.9rem;
+}
+
+#loading,
+#bookings-loading,
+#event-loading {
+  font-style: italic;
+  color: var(--sh-text-muted);
+}
+
+/* ---------- Footer ---------- */
+
+footer {
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.88);
+  border-top: 1px solid var(--sh-border);
+  backdrop-filter: blur(10px);
+}
+
+footer small {
+  color: var(--sh-text-muted);
+}
+
+/* ---------- Small utilities ---------- */
+
+.badge-soft {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  background: var(--sh-primary-soft);
+  color: var(--sh-primary);
+  font-size: 0.75rem;
+  font-weight: 500;
+}
