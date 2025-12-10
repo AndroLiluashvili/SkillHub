@@ -67,7 +67,6 @@
 
     try {
       const user = await loginUser(email, password);
-      // redirect to events page after login
       window.location.href = "index.html";
     } catch (err) {
       alertBox.textContent = err.message || "Login failed.";

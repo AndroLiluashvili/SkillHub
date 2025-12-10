@@ -1,4 +1,4 @@
-// frontend/js/auth.js
+
 
 const USER_STORAGE_KEY = "skillhub_user";
 
@@ -20,7 +20,7 @@ function getUserFromLocal() {
   }
 }
 
-// Call backend /api/me to sync session/localStorage
+
 async function syncCurrentUser() {
   try {
     const res = await apiGet("/me");
@@ -33,7 +33,7 @@ async function syncCurrentUser() {
   }
 }
 
-// Build navbar auth links depending on login status
+
 function updateNavbarAuth(user) {
   const navAuth = document.getElementById("nav-auth");
   if (!navAuth) return;
@@ -75,7 +75,7 @@ function updateNavbarAuth(user) {
   }
 }
 
-// API wrappers
+
 async function registerUser(name, email, password) {
   return apiPost("/register", { name, email, password });
 }
@@ -94,13 +94,13 @@ async function logout() {
     console.warn("Logout error (ignored):", e);
   }
   saveUserToLocal(null);
-  // reload to update UI
+  
   window.location.href = "index.html";
 }
 
-// On each page load, sync navbar & user
+
 document.addEventListener("DOMContentLoaded", () => {
-  // Start by using local storage (instant), then confirm with backend
+  
   updateNavbarAuth(getUserFromLocal());
   syncCurrentUser();
 });

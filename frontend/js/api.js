@@ -1,10 +1,9 @@
-// frontend/js/api.js
 
 const API_BASE = "http://127.0.0.1:5000/api";
 
 async function apiGet(path) {
   const res = await fetch(`${API_BASE}${path}`, {
-    credentials: "include", // include cookies for session
+    credentials: "include", 
   });
   if (!res.ok) {
     const text = await res.text();

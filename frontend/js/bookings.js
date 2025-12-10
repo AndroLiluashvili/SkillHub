@@ -1,10 +1,10 @@
-// frontend/js/bookings.js
+
 
 const bookingsContainer = document.getElementById("bookings-container");
 const bookingsLoading = document.getElementById("bookings-loading");
 const bookingsAlert = document.getElementById("bookings-alert");
 
-// Flask backend base URL (port 5000, not 5500)
+
 const BACKEND_BASE = "http://127.0.0.1:5000/api";
 
 function showBookingsError(message) {
@@ -27,7 +27,7 @@ async function loadBookings() {
   bookingsContainer.innerHTML = "";
 
   try {
-    // apiGet is from js/api.js and already talks to the backend
+    
     const bookings = await apiGet("/my-bookings");
     bookingsLoading.classList.add("d-none");
 
@@ -70,7 +70,7 @@ async function loadBookings() {
   }
 }
 
-// Handle cancel booking via event delegation on the container
+
 if (bookingsContainer) {
   bookingsContainer.addEventListener("click", async (e) => {
     const btn = e.target.closest(".cancel-booking-btn");
@@ -91,7 +91,7 @@ if (bookingsContainer) {
     clearBookingsError();
 
     try {
-      // IMPORTANT: talk to Flask backend on port 5000
+      
       const res = await fetch(`${BACKEND_BASE}/bookings/${bookingId}`, {
         method: "DELETE",
         credentials: "include",
@@ -105,7 +105,7 @@ if (bookingsContainer) {
         throw new Error(data.error || "Could not cancel booking.");
       }
 
-      // Refresh bookings after successful cancel
+      
       await loadBookings();
     } catch (err) {
       btn.disabled = false;

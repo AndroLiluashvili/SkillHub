@@ -11,7 +11,7 @@ def book_event(event_id):
 
     db = get_db()
 
-    # Check if event exists
+    
     event = db.execute(
         "SELECT * FROM events WHERE id = ?", (event_id,)
     ).fetchone()
@@ -19,7 +19,7 @@ def book_event(event_id):
         db.close()
         return jsonify({"error": "Event not found"}), 404
 
-    # Check capacity
+    
     booked = db.execute(
         "SELECT COUNT(*) AS c FROM bookings WHERE event_id = ?",
         (event_id,),

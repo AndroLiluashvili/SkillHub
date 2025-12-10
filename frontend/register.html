@@ -90,8 +90,6 @@
       await registerUser(name, email, password);
       successBox.textContent = "Registration successful. You can now login.";
       successBox.classList.remove("d-none");
-      // optional: auto-redirect after short delay
-      // setTimeout(() => window.location.href = "login.html", 1500);
     } catch (err) {
       errBox.textContent = err.message || "Registration failed.";
       errBox.classList.remove("d-none");

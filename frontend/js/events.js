@@ -1,4 +1,4 @@
-// frontend/js/events.js
+
 
 async function loadEvents() {
     const container = document.getElementById("events-container");

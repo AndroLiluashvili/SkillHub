@@ -1,4 +1,4 @@
-// frontend/js/event-detail.js
+
 
 function getEventIdFromUrl() {
     const params = new URLSearchParams(window.location.search);
@@ -26,7 +26,7 @@ function getEventIdFromUrl() {
       errorBox.classList.add("d-none");
       content.classList.remove("d-none");
   
-      // Fill content
+      
       document.getElementById("event-title").textContent = event.title;
       document.getElementById("event-meta").textContent =
         `${event.date} • ${event.time}`;
@@ -63,7 +63,7 @@ function getEventIdFromUrl() {
           msgBox.classList.add("alert", "alert-success");
           msgBox.classList.remove("d-none");
   
-          // refresh seats left
+          
           const updated = await apiGet(`/events/${eventId}`);
           document.getElementById("event-seats").textContent = updated.seats_left;
         } catch (err) {

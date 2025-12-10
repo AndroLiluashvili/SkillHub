@@ -20,7 +20,7 @@ def event_detail(event_id):
     if event is None:
         return jsonify({"error": "Not found"}), 404
 
-    # count bookings
+    
     booked = db.execute(
         "SELECT COUNT(*) AS c FROM bookings WHERE event_id = ?",
         (event_id,),

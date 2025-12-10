@@ -1,4 +1,4 @@
-// frontend/js/create-event.js
+
 
 document.addEventListener("DOMContentLoaded", () => {
     const form = document.getElementById("create-event-form");
@@ -35,10 +35,10 @@ document.addEventListener("DOMContentLoaded", () => {
         successBox.textContent = "Event created successfully.";
         successBox.classList.remove("d-none");
   
-        // optional: redirect straight to event page
-        // window.location.href = `event.html?id=${res.id}`;
+        
+        
   
-        // or clear form for another entry
+        
         form.reset();
       } catch (err) {
         errBox.textContent = err.message || "Failed to create event.";

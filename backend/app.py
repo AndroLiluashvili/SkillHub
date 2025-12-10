@@ -7,38 +7,38 @@ from flask_cors import CORS
 from werkzeug.security import generate_password_hash, check_password_hash
 
 
-# ------------------------------------------------
-# CITY COORDINATES (for weather API)
-# ------------------------------------------------
+
+
+
 
 CITY_COORDS = {
-    # Georgia
+    
     "Tbilisi": (41.7167, 44.7833),
     "Batumi": (41.6416, 41.6359),
 
-    # Baltics
+    
     "Riga": (56.9496, 24.1052),
     "Vilnius": (54.6872, 25.2797),
     "Tallinn": (59.4370, 24.7536),
 
-    # Core European hubs
+    
     "Berlin": (52.5200, 13.4050),
     "Vienna": (48.2082, 16.3738),
     "London": (51.5074, -0.1278),
     "Amsterdam": (52.3676, 4.9041),
 
-    # US tech / business
+    
     "New York": (40.7128, -74.0060),
     "San Francisco": (37.7749, -122.4194),
 
-    # Online events (no weather)
+    
     "Online": None,
 }
 
 
-# ------------------------------------------------
-# CONFIG
-# ------------------------------------------------
+
+
+
 
 BASE_DIR = os.path.dirname(__file__)
 DB_PATH = os.path.join(BASE_DIR, "skillhub.db")
@@ -46,28 +46,28 @@ DB_PATH = os.path.join(BASE_DIR, "skillhub.db")
 app = Flask(__name__)
 app.config["SECRET_KEY"] = "CHANGE_ME_TO_RANDOM_SECRET"
 
-# Session cookie security
+
 app.config.update(
-    SESSION_COOKIE_HTTPONLY=True,   # JS cannot read the cookie
-    SESSION_COOKIE_SAMESITE="Lax",  # helps against CSRF from other sites
-    SESSION_COOKIE_SECURE=False,    # set True if you deploy over HTTPS
+    SESSION_COOKIE_HTTPONLY=True,   
+    SESSION_COOKIE_SAMESITE="Lax",  
+    SESSION_COOKIE_SECURE=False,    
 )
 
-# Allow only your frontend origin(s) for CORS, not everyone
+
 CORS(
     app,
     supports_credentials=True,
     origins=[
-        "http://localhost:5500",      # static server from frontend/
+        "http://localhost:5500",      
         "http://127.0.0.1:5500",
-        # you can add your real domain later if deployed
+        
     ],
 )
 
 
-# ------------------------------------------------
-# DB HELPERS
-# ------------------------------------------------
+
+
+
 
 def get_db():
     conn = sqlite3.connect(DB_PATH)
@@ -107,7 +107,7 @@ def init_db():
         """
     )
 
-    # seed a few events if empty
+    
     cur = db.execute("SELECT COUNT(*) AS c FROM events")
     if cur.fetchone()["c"] == 0:
         db.executemany(
@@ -214,13 +214,13 @@ def init_db():
     db.close()
 
 
-# run once on import
+
 init_db()
 
 
-# ------------------------------------------------
-# SMALL HELPER
-# ------------------------------------------------
+
+
+
 
 def require_login():
     if "user_id" not in session:
@@ -228,9 +228,9 @@ def require_login():
     return True, None, None
 
 
-# ------------------------------------------------
-# ROOT
-# ------------------------------------------------
+
+
+
 
 @app.get("/")
 def home():
@@ -248,9 +248,9 @@ def home():
     )
 
 
-# ------------------------------------------------
-# SIMPLE CITIES ENDPOINT
-# ------------------------------------------------
+
+
+
 
 @app.get("/api/cities")
 def get_cities():
@@ -261,9 +261,9 @@ def get_cities():
     return jsonify(sorted([c for c in CITY_COORDS.keys() if c != "Online"]))
 
 
-# ------------------------------------------------
-# AUTH ROUTES
-# ------------------------------------------------
+
+
+
 
 @app.post("/api/register")
 def register():
@@ -324,9 +324,9 @@ def logout():
     return jsonify({"message": "Logged out"})
 
 
-# ------------------------------------------------
-# WEATHER HELPER
-# ------------------------------------------------
+
+
+
 
 def get_weather_for_city(city: str):
     """
@@ -364,9 +364,9 @@ def get_weather_for_city(city: str):
         return None
 
 
-# ------------------------------------------------
-# EVENTS ROUTES
-# ------------------------------------------------
+
+
+
 
 @app.get("/api/events")
 def get_events():
@@ -394,16 +394,16 @@ def get_event(event_id):
     event_dict = dict(event)
     event_dict["seats_left"] = event_dict["capacity"] - booked
 
-    # attach weather if we have coords for the city
+    
     weather = get_weather_for_city(event_dict.get("city"))
-    event_dict["weather"] = weather  # may be None
+    event_dict["weather"] = weather  
 
     return jsonify(event_dict)
 
 
 @app.post("/api/events")
 def create_event():
-    # Must be logged in to create an event
+    
     ok, resp, code = require_login()
     if not ok:
         return resp, code
@@ -412,14 +412,14 @@ def create_event():
 
     title = (data.get("title") or "").strip()
     description = (data.get("description") or "").strip()
-    date = (data.get("date") or "").strip()         # format: YYYY-MM-DD
-    time = (data.get("time") or "").strip()         # format: HH:MM
+    date = (data.get("date") or "").strip()         
+    time = (data.get("time") or "").strip()         
     city = (data.get("city") or "").strip()
     location = (data.get("location") or "").strip()
     capacity = data.get("capacity")
     price = data.get("price")
 
-    # Basic validation
+    
     if not title or not date or not time or not city or not location:
         return jsonify({"error": "Title, date, time, city and location are required"}), 400
 
@@ -444,9 +444,9 @@ def create_event():
     return jsonify({"message": "Event created", "id": new_id}), 201
 
 
-# ------------------------------------------------
-# BOOKINGS ROUTES
-# ------------------------------------------------
+
+
+
 
 @app.post("/api/events/<int:event_id>/book")
 def book_event(event_id):
@@ -534,9 +534,9 @@ def cancel_booking(booking_id):
     return jsonify({"message": "Booking cancelled"})
 
 
-# ------------------------------------------------
-# RUN
-# ------------------------------------------------
+
+
+
 
 if __name__ == "__main__":
     app.run(debug=True)
