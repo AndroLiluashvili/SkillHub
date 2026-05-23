@@ -120,17 +120,17 @@ def init_db():
                 (
                     "AI Workshop for Entrepreneurs",
                     "Hands-on session for founders who want to use AI tools in their startup workflow.",
-                    "2025-11-17",
+                    "2026-06-10",
                     "16:00",
                     "Riga",
-                    "TechHub Riga – Central Campus",
+                    "TechHub Riga - Central Campus",
                     25,
                     150.0,
                 ),
                 (
                     "Strategic Negotiations Workshop",
                     "Learn practical negotiation skills for business and leadership.",
-                    "2025-12-10",
+                    "2026-06-18",
                     "10:00",
                     "Tbilisi",
                     "Tech Park Hall A",
@@ -140,7 +140,7 @@ def init_db():
                 (
                     "AI for Managers",
                     "Non-technical introduction to AI and data-driven decisions for managers.",
-                    "2025-12-15",
+                    "2026-07-02",
                     "14:00",
                     "Online",
                     "Zoom Webinar",
@@ -150,37 +150,37 @@ def init_db():
                 (
                     "Leadership & Communication Bootcamp",
                     "Two-day intensive on public speaking, feedback and conflict resolution.",
-                    "2026-01-20",
+                    "2026-07-16",
                     "09:30",
                     "Vilnius",
-                    "Innovation Center – Room Aurora",
+                    "Innovation Center - Room Aurora",
                     40,
                     179.0,
                 ),
                 (
                     "Data Storytelling for Business",
                     "Turn raw data into compelling stories and dashboards that drive decisions.",
-                    "2026-02-05",
+                    "2026-08-06",
                     "18:00",
                     "Berlin",
-                    "Analytics Hub – Main Auditorium",
+                    "Analytics Hub - Main Auditorium",
                     35,
                     129.0,
                 ),
                 (
                     "Product Management Fundamentals",
                     "From idea validation to MVP and stakeholder management.",
-                    "2026-02-12",
+                    "2026-08-20",
                     "10:00",
                     "Vienna",
-                    "Digital Innovation Lab – Room Neo",
+                    "Digital Innovation Lab - Room Neo",
                     30,
                     139.0,
                 ),
                 (
                     "Remote Team Leadership",
                     "Best practices for managing distributed teams across time zones.",
-                    "2026-03-03",
+                    "2026-09-03",
                     "15:00",
                     "Online",
                     "Microsoft Teams",
@@ -190,20 +190,20 @@ def init_db():
                 (
                     "Scaling Startups in Practice",
                     "Fundraising, hiring, and building repeatable growth systems.",
-                    "2026-03-15",
+                    "2026-09-17",
                     "11:00",
                     "San Francisco",
-                    "SoMa Startup Campus – Stage A",
+                    "SoMa Startup Campus - Stage A",
                     60,
                     220.0,
                 ),
                 (
                     "Tech Career Kickstart",
                     "Career planning, portfolio, and interview prep for junior developers.",
-                    "2026-04-02",
+                    "2026-10-01",
                     "17:30",
                     "New York",
-                    "Midtown Innovation Hub – Loft 3B",
+                    "Midtown Innovation Hub - Loft 3B",
                     50,
                     89.0,
                 ),
@@ -331,7 +331,7 @@ def logout():
 def get_weather_for_city(city: str):
     """
     Fetch current weather for a given city using Open-Meteo.
-    Returns a small dict or None if not available / error.
+    Returns a small dict or an unavailable status if the live API cannot be reached.
     """
     coords = CITY_COORDS.get(city)
     if not coords:
@@ -339,29 +339,48 @@ def get_weather_for_city(city: str):
 
     lat, lon = coords
     try:
-        resp = requests.get(
+        session = requests.Session()
+        session.trust_env = False
+
+        resp = session.get(
             "https://api.open-meteo.com/v1/forecast",
             params={
                 "latitude": lat,
                 "longitude": lon,
-                "current_weather": "true",
+                "current": "temperature_2m,wind_speed_10m,weather_code",
+                "timezone": "auto",
             },
             timeout=5,
         )
         if resp.status_code != 200:
-            return None
+            return {
+                "available": False,
+                "source": "Open-Meteo",
+                "message": "Live weather could not be loaded right now.",
+            }
         data = resp.json()
-        cw = data.get("current_weather")
+        cw = data.get("current")
         if not cw:
-            return None
+            return {
+                "available": False,
+                "source": "Open-Meteo",
+                "message": "Live weather data was not returned for this city.",
+            }
 
         return {
-            "temperature": cw.get("temperature"),
-            "windspeed": cw.get("windspeed"),
-            "weathercode": cw.get("weathercode"),
+            "available": True,
+            "source": "Open-Meteo",
+            "temperature": cw.get("temperature_2m"),
+            "windspeed": cw.get("wind_speed_10m"),
+            "weathercode": cw.get("weather_code"),
+            "time": cw.get("time"),
         }
     except Exception:
-        return None
+        return {
+            "available": False,
+            "source": "Open-Meteo",
+            "message": "Live weather could not be reached from the server.",
+        }
 
 
 
@@ -372,10 +391,25 @@ def get_weather_for_city(city: str):
 def get_events():
     db = get_db()
     events = db.execute(
-        "SELECT * FROM events ORDER BY date ASC, time ASC"
+        """
+        SELECT e.*, COUNT(b.id) AS booked_count
+        FROM events e
+        LEFT JOIN bookings b ON b.event_id = e.id
+        GROUP BY e.id
+        ORDER BY e.date ASC, e.time ASC
+        """
     ).fetchall()
     db.close()
-    return jsonify([dict(e) for e in events])
+
+    event_list = []
+    for event in events:
+        event_dict = dict(event)
+        capacity = event_dict.get("capacity") or 0
+        booked_count = event_dict.get("booked_count") or 0
+        event_dict["seats_left"] = max(capacity - booked_count, 0)
+        event_list.append(event_dict)
+
+    return jsonify(event_list)
 
 
 @app.get("/api/events/<int:event_id>")
@@ -392,7 +426,8 @@ def get_event(event_id):
     db.close()
 
     event_dict = dict(event)
-    event_dict["seats_left"] = event_dict["capacity"] - booked
+    event_dict["booked_count"] = booked
+    event_dict["seats_left"] = max(event_dict["capacity"] - booked, 0)
 
     
     weather = get_weather_for_city(event_dict.get("city"))
@@ -423,11 +458,22 @@ def create_event():
     if not title or not date or not time or not city or not location:
         return jsonify({"error": "Title, date, time, city and location are required"}), 400
 
+    if city not in CITY_COORDS:
+        return jsonify({
+            "error": "Please choose one of the supported cities or Online so weather can be shown reliably."
+        }), 400
+
     try:
         capacity = int(capacity)
         price = float(price)
     except (TypeError, ValueError):
         return jsonify({"error": "Capacity must be integer and price must be a number"}), 400
+
+    if capacity < 1:
+        return jsonify({"error": "Capacity must be at least 1"}), 400
+
+    if price < 0:
+        return jsonify({"error": "Price must be 0 or a positive number"}), 400
 
     db = get_db()
     cur = db.execute(
@@ -504,7 +550,14 @@ def my_bookings():
     db = get_db()
     bookings = db.execute(
         """
-        SELECT b.id, e.title, e.date, e.time, e.city, e.location
+        SELECT b.id,
+               b.event_id,
+               e.title,
+               e.date,
+               e.time,
+               e.city,
+               e.location,
+               e.price
         FROM bookings b
         JOIN events e ON e.id = b.event_id
         WHERE b.user_id = ?

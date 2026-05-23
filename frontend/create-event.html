@@ -3,21 +3,30 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>SkillHub – Create event</title>
+  <meta name="description" content="Create a new SkillHub training event, workshop or seminar with date, location, capacity and price details.">
+  <title>SkillHub - Create event</title>
+  <script>
+    (function () {
+      var theme = localStorage.getItem("skillhub_theme");
+      if (theme === "dark") document.documentElement.dataset.theme = "dark";
+    })();
+  </script>
 
   <link
     href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
     rel="stylesheet"
   >
-  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/style.css?v=skillhub-ux-6">
 </head>
 <body>
+<a class="skip-link" href="#main-content">Skip to content</a>
 
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
+<nav class="navbar navbar-expand-lg navbar-dark">
   <div class="container">
     <a class="navbar-brand" href="index.html">SkillHub</a>
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
-            data-bs-target="#navbarNav">
+            data-bs-target="#navbarNav" aria-controls="navbarNav"
+            aria-expanded="false" aria-label="Toggle navigation">
       <span class="navbar-toggler-icon"></span>
     </button>
     <div class="collapse navbar-collapse" id="navbarNav">
@@ -31,68 +40,122 @@
   </div>
 </nav>
 
-<main class="container mb-5" style="max-width: 700px;">
-  <h1 class="h3 mb-3">Create a new event</h1>
-  <p class="text-muted">
-    Fill in the details below to add a new training, workshop or seminar.
-  </p>
+<main id="main-content" class="container main-shell create-event-shell">
+  <div class="create-event-layout">
+    <section class="form-panel wide-form create-event-panel" aria-labelledby="create-event-heading">
+      <p class="eyebrow dark">Event organiser</p>
+      <h1 id="create-event-heading">Create a new event</h1>
+      <p class="text-muted mb-0">Add the key details learners need before they decide to book.</p>
 
-  <div id="event-create-alert" class="alert alert-danger d-none"></div>
-  <div id="event-create-success" class="alert alert-success d-none"></div>
+      <div id="event-create-alert" class="alert alert-danger d-none" role="alert" tabindex="-1"></div>
+      <div id="event-create-success" class="alert alert-success d-none" role="status" tabindex="-1"></div>
 
-  <form id="create-event-form">
-    <div class="mb-3">
-      <label for="ev-title" class="form-label">Title</label>
-      <input type="text" class="form-control" id="ev-title" required>
-    </div>
+      <form id="create-event-form">
+        <fieldset class="form-section">
+          <legend style="text-align: center;">Event details</legend>
+          <div class="mb-3">
+            <label for="ev-title" class="form-label">Event title</label>
+            <input type="text" class="form-control" id="ev-title"
+                   placeholder="Example: Data Storytelling for Business" autocomplete="off"
+                   maxlength="90" required>
+          </div>
 
-    <div class="mb-3">
-      <label for="ev-description" class="form-label">Description</label>
-      <textarea class="form-control" id="ev-description" rows="3"></textarea>
-    </div>
+          <div class="mb-0">
+            <label for="ev-description" class="form-label">Description</label>
+            <textarea class="form-control" id="ev-description" rows="4"
+                      placeholder="Briefly explain who the event is for and what learners will gain."
+                      maxlength="500"></textarea>
+            <div class="form-text">Keep it short and practical. One or two sentences is enough.</div>
+          </div>
+        </fieldset>
 
-    <div class="row">
-      <div class="mb-3 col-md-6">
-        <label for="ev-date" class="form-label">Date</label>
-        <input type="date" class="form-control" id="ev-date" required>
+        <fieldset class="form-section">
+          <legend style="text-align: center;">Date and location</legend>
+          <div class="row">
+            <div class="mb-3 col-md-6">
+              <label for="ev-date" class="form-label">Date</label>
+              <input type="date" class="form-control" id="ev-date" required>
+            </div>
+            <div class="mb-3 col-md-6">
+              <label for="ev-time" class="form-label">Time</label>
+              <input type="time" class="form-control" id="ev-time" required>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="mb-3 col-md-6">
+              <label for="ev-city" class="form-label">City or format</label>
+              <select class="form-select" id="ev-city" aria-describedby="city-help" required>
+                <option value="">Choose a supported city</option>
+              </select>
+              <div id="city-help" class="form-text">Choose Online for remote sessions.</div>
+            </div>
+            <div class="mb-3 col-md-6">
+              <label for="ev-location" class="form-label">Location details</label>
+              <input type="text" class="form-control" id="ev-location"
+                     placeholder="Room, venue or meeting platform" autocomplete="off" required>
+            </div>
+          </div>
+
+          <div id="city-weather-note" class="field-note" role="status">
+            Select a city and SkillHub will show live weather on the event detail page.
+          </div>
+        </fieldset>
+
+        <fieldset class="form-section">
+          <legend style="text-align: center;">Seats and price</legend>
+          <div class="row">
+            <div class="mb-3 col-md-6">
+              <label for="ev-capacity" class="form-label">Capacity</label>
+              <input type="number" class="form-control" id="ev-capacity"
+                     placeholder="Example: 30" required min="1" step="1" inputmode="numeric">
+            </div>
+            <div class="mb-3 col-md-6">
+              <label for="ev-price" class="form-label">Price (EUR)</label>
+              <input type="number" class="form-control" id="ev-price"
+                     placeholder="Use 0 for a free event" required step="0.01" min="0" inputmode="decimal">
+            </div>
+          </div>
+        </fieldset>
+
+        <div class="form-actions">
+          <a class="btn btn-outline-secondary" href="index.html#events-browse">Cancel</a>
+          <button type="submit" class="btn btn-primary" id="create-event-submit">
+            Create event
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <aside class="create-event-aside" aria-labelledby="supported-cities-heading">
+      <div class="helper-card">
+        <h2 id="supported-cities-heading">Supported locations</h2>
+        <p>SkillHub uses a fixed city list so weather information works consistently.</p>
+        <div id="supported-city-list" class="supported-city-list" aria-live="polite">
+          Loading cities...
+        </div>
       </div>
-      <div class="mb-3 col-md-6">
-        <label for="ev-time" class="form-label">Time</label>
-        <input type="time" class="form-control" id="ev-time" required>
+      <div class="helper-card">
+        <h2>Before publishing</h2>
+        <ul class="helper-list">
+          <li>Use a clear title.</li>
+          <li>Add a specific room, venue, or platform.</li>
+          <li>Check the date and capacity before submitting.</li>
+        </ul>
       </div>
-    </div>
-
-    <div class="row">
-      <div class="mb-3 col-md-6">
-        <label for="ev-city" class="form-label">City</label>
-        <input type="text" class="form-control" id="ev-city" required>
-      </div>
-      <div class="mb-3 col-md-6">
-        <label for="ev-location" class="form-label">Location details</label>
-        <input type="text" class="form-control" id="ev-location" required>
-      </div>
-    </div>
-
-    <div class="row">
-      <div class="mb-3 col-md-6">
-        <label for="ev-capacity" class="form-label">Capacity</label>
-        <input type="number" class="form-control" id="ev-capacity" required min="1">
-      </div>
-      <div class="mb-3 col-md-6">
-        <label for="ev-price" class="form-label">Price (€)</label>
-        <input type="number" class="form-control" id="ev-price" required step="0.01" min="0">
-      </div>
-    </div>
-
-    <button type="submit" class="btn btn-primary w-100">
-      Create event
-    </button>
-  </form>
+    </aside>
+  </div>
 </main>
 
+<footer class="py-3 mt-auto">
+  <div class="container text-center">
+    <small>&copy; 2026 SkillHub. Web development and UX coursework project.</small>
+  </div>
+</footer>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script src="js/api.js"></script>
-<script src="js/auth.js"></script>
-<script src="js/create-event.js"></script>
+<script src="js/api.js?v=skillhub-ux-6"></script>
+<script src="js/auth.js?v=skillhub-ux-6"></script>
+<script src="js/create-event.js?v=skillhub-ux-6"></script>
 </body>
 </html>
