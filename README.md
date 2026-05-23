@@ -21,7 +21,7 @@ pip install -r backend/requirements.txt
 python backend/app.py
 ```
 
-By default the Flask server listens on `http://127.0.0.1:5000`. The frontend pages are static files under `frontend/` — open them directly in a browser or serve them via a static server.
+By default the Flask server listens on `http://127.0.0.1:5000`.
 
 4. Serve frontend (recommended for fetch APIs; ensure pages are served from http(s) origin)
 
